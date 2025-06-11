@@ -10,3 +10,6 @@ local.properties
 
 # macOS/Linux
 .DS_Store
+
+!release-artifacts/*.apk
+!release-artifacts/*.so
