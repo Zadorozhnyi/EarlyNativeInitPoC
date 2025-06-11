@@ -1,0 +1,2 @@
+rootProject.name = "EarlyNativeInitPoC"
+include ':app'
