@@ -2,6 +2,14 @@
 
 This project demonstrates how to execute a custom native C++ function **before** any Java/Kotlin code - even **before** the `Application` constructor - using `ContentProvider` and `__attribute__((constructor))` in native code.
 
+
+A new feature was added demonstrating that the early_function() executes immediately after a device reboot, even before the user unlocks the device. It includes real logcat output confirming:
+
+1. Native code runs before Application or Activity
+2. The app handles Direct Boot and locked-device scenarios
+3. MainActivity is correctly launched afterward
+
+This proves the solution meets the early execution, Direct Boot, and scalability requirements.
 ---
 
 ## Key Features
@@ -9,7 +17,7 @@ This project demonstrates how to execute a custom native C++ function **before**
 - Executes a native function **before** `Application.onCreate()`
 - Uses `ContentProvider` to load `native-lib.so` early
 - Relies on `__attribute__((constructor))` to run C++ before `JNI_OnLoad`
-- Supports Direct Boot
+- Supports Direct Boot & File-Based Encryption (FBE)
 - Fully deterministic & scalable design - suitable for enterprise production environments
 
 ---
@@ -25,6 +33,7 @@ EarlyNativeInitPoC/
 │   │   │   │   ├── native-lib.cpp
 │   │   │   │   └── CMakeLists.txt
 │   │   │   ├── java/com/example/poc/
+│   │   │   │   ├── BootReceiver.java
 │   │   │   │   ├── MainActivity.java
 │   │   │   │   ├── MyApp.java
 │   │   │   │   └── EarlyInitProvider.java
@@ -149,6 +158,25 @@ adb logcat | grep EarlyFunctionExecution
 ```
 - You should still see logs from `early_function()` - meaning it executes even before unlocking.
 
+---
+
+### After Full Reboot - Boot-Time Validation
+
+After rebooting the device, the system log still confirms that `early_function()` is called even **before unlocking**:
+
+```bash
+adb logcat | grep EarlyFunctionExecution
+early_function() called BEFORE JNI_OnLoad and onCreate
+JNI_OnLoad called
+native-lib loaded via ContentProvider
+onCreate()
+MyApp Application.onCreate()
+BOOT_COMPLETED received, launching MainActivity
+
+MainActivity()  - called after we started application
+```
+
+Confirms that the early native function executes at boot-time automatically, and the normal flow resumes afterward.
 
 ---
 

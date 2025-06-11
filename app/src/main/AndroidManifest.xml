@@ -1,6 +1,8 @@
 <manifest package="com.example.poc"
     xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+
     <application
         android:name=".MyApp"
         android:allowBackup="true"
@@ -15,6 +17,17 @@
             android:exported="false"
             android:initOrder="100"
             android:directBootAware="true" />
+
+        <receiver
+            android:name=".BootReceiver"
+            android:exported="true"
+            android:enabled="true"
+            android:directBootAware="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
+        </receiver>
 
         <activity
             android:name=".MainActivity"
