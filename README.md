@@ -4,6 +4,39 @@ This project demonstrates how to execute a custom native C++ function **before**
 
 ---
 
+This solution performs early native root detection - specifically targeting the presence of PlayIntegrityFix (PIF) - before any Java/Kotlin code is executed, even before Application.onCreate(). It's designed to be:
+
+1. Hard to bypass (runs before standard Java sandbox initializes)
+
+2. Fast & deterministic (direct native checks using access() and opendir())
+
+3. Invisible to Java-only hooking tools
+
+The result is passed via a global native flag (isRooted), accessible from Java via JNI, enabling clean separation of logic and UI.
+
+### What is implemented?
+1. Native C++ detection:
+
+    - Checks known filesystem paths for playintegrityfix
+
+    - Optionally scans /data/adb/modules/ for suspicious names
+
+2. Static constructor (__attribute__((constructor))):
+
+    - Executes as early as possible, before JNI_OnLoad, before Application
+
+3. JNI bridge:
+
+    - Java reads isRooted via a native method
+
+4. Java UI:
+
+    - Shows alert if detection result is true
+
+This makes the approach robust for production anti-tamper or integrity enforcement.
+
+---
+
 ## Key Features
 
 - Executes a native function **before** `Application.onCreate()`
@@ -36,7 +69,6 @@ EarlyNativeInitPoC/
 ```
 
 ---
-
 
 ## How early loading works via ContentProvider
 
@@ -149,6 +181,36 @@ adb logcat | grep EarlyFunctionExecution
 ```
 - You should still see logs from `early_function()` - meaning it executes even before unlocking.
 
+---
+
+## Root Detection Test Instructions
+
+To test root-like detection using `playIntegrityFix` signature:
+
+1. Run this to simulate detection in a non-rooted phone:
+```bash
+adb shell "echo mock > /sdcard/playintegrityfix_mock"
+```
+
+2. Uncomment this line in `native-lib.cpp` path array:
+```cpp
+"/sdcard/playintegrityfix_mock" // just for testing!!
+```
+
+3. Build and run the application.
+4. You should see an alert dialog that root detection was triggered.
+5. Then, clean up:
+```bash
+adb shell rm /sdcard/playintegrityfix_mock
+```
+
+### Why global variable?
+Using a global `static bool isRooted`:
+- Enables early assignment during `__attribute__((constructor))`
+- Ensures Java code can check detection **at any time**, without re-running native logic
+- Simplifies JNI and avoids need for cached `JNIEnv*` or repeated disk checks
+
+This approach keeps detection stateless and immutable from Java-side, increasing security and robustness.
 
 ---
 
